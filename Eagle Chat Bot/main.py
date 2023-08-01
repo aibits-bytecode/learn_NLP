@@ -95,8 +95,39 @@ def add_to_order(parameters: dict, session_id):
     })
 
 
-def remove_from_order(parameter: dict):
-    pass
+def remove_from_order(parameters: dict, session_id: str):
+    if session_id not in inprogress_orders:
+        return JSONResponse(content={
+            "fulfillmentText": "I'm having a trouble finding your order. Sorry! Can you place a new order please?"
+        })
+
+    food_items = parameters["food-item"]
+
+    removed_items = []
+    no_such_items = []
+
+    for item in food_items:
+        if item not in inprogress_orders[session_id]:
+            no_such_items.append(item)
+        else:
+            removed_items.append(item)
+            del inprogress_orders[session_id][item]
+
+    if len(removed_items) > 0:
+        fulfillment_text = f'Removed {",".join(removed_items)} from your order!'
+
+    if len(no_such_items) > 0:
+        fulfillment_text = f' Your current order does not have {",".join(no_such_items)}'
+
+    if len(inprogress_orders[session_id].keys()) == 0:
+        fulfillment_text += " Your order is empty!"
+    else:
+        order_str = generic_helper.get_str_from_food_dict(inprogress_orders[session_id])
+        fulfillment_text += f" Here is what is left in your order: {order_str}"
+
+    return JSONResponse(content={
+        "fulfillmentText": fulfillment_text
+    })
 
 
 def track_order(parameter: dict, session_id):
